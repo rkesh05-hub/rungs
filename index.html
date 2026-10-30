@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rungs</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,500;1,400&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+/* Layout: one narrow column. Words are serif links on a vertical rail; everything else is quiet sans. One accent, two semantic colors. */
+html,body{margin:0}
+:root{
+  --bg:#ffffff; --fg:#202122; --muted:#72777d; --rule:#dfe2e6;
+  --accent:#3366cc; --miss:#d33a3a; --win:#14866d;
+  --display:"Crimson Pro", Georgia, "Times New Roman", serif;
+  --body:"Source Sans 3", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --s:13px; --m:16px; --l:26px; --xl:clamp(34px, 8vw, 44px);
+  --r:4px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#121417; --fg:#e8eaed; --muted:#9aa0a6; --rule:#2c3036;
+  --accent:#8ab0f5; --miss:#ff8a80; --win:#4cc9a0; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#121417; --fg:#e8eaed; --muted:#9aa0a6; --rule:#2c3036;
+  --accent:#8ab0f5; --miss:#ff8a80; --win:#4cc9a0; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg); color:var(--fg); font:400 var(--m)/1.5 var(--body); -webkit-text-size-adjust:100%}
+.wrap{max-width:560px; margin:0 auto; padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); padding-block:16px 48px; display:grid; gap:24px}
+button{font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer}
+:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:2px}
+.small{font-size:var(--s); color:var(--muted)}
+.link{color:var(--accent)}
+.link:hover{text-decoration:underline; text-underline-offset:3px}
+
+/* header */
+header{display:flex; justify-content:space-between; align-items:baseline; gap:16px; flex-wrap:wrap; padding-bottom:12px; border-bottom:1px solid var(--rule)}
+.brand{font:500 24px/1 var(--display)}
+nav{display:flex; gap:16px; font-size:var(--s)}
+nav button{color:var(--accent)}
+nav button[aria-selected="true"]{color:var(--fg); font-weight:600}
+
+/* title */
+.head{display:grid; gap:4px}
+h1{font:500 var(--xl)/1.1 var(--display); margin:0; text-wrap:balance}
+h1 .to{font-style:italic; font-weight:400; color:var(--muted)}
+
+/* guesses + clock: same circle language as the ladder */
+.status{display:flex; justify-content:space-between; align-items:center}
+.pips{display:flex; gap:8px}
+.pip{width:10px; height:10px; border-radius:50%; border:1.5px solid var(--rule)}
+.pip.hit{background:var(--accent); border-color:var(--accent)}
+.pip.miss{background:var(--miss); border-color:var(--miss)}
+.pip.hint{border-color:var(--accent); border-style:dashed}
+.clock{font-variant-numeric:tabular-nums}
+
+/* ladder */
+.ladder{list-style:none; margin:0; padding:0}
+.legend{display:flex; justify-content:flex-end; padding-bottom:4px}
+.rung{position:relative; display:flex; align-items:center; gap:16px; padding:8px 0 8px 28px; min-height:48px}
+.rung::before{content:""; position:absolute; left:5px; top:-2px; bottom:-2px; width:1.5px; background:var(--rule)}
+.rung:first-child::before{top:50%} .rung:last-child::before{bottom:50%}
+.rung::after{content:""; position:absolute; left:0; top:50%; width:12px; height:12px; margin-top:-6px; border-radius:50%; background:var(--bg); border:1.5px solid var(--accent)}
+.rung.start::after{background:var(--accent)}
+.rung.goal::after{border-style:dashed; border-color:var(--muted)}
+.rung.goal.reached::after{background:var(--win); border:1.5px solid var(--win)}
+.word{flex:1; min-width:0; font:500 var(--l)/1.2 var(--display); overflow-wrap:anywhere; text-align:left}
+.rung .word.link{color:var(--fg)}
+.rung.current .word{color:var(--accent); text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:5px}
+.rung.goal .word{color:var(--muted); font-style:italic; font-weight:400}
+.rung.goal.reached .word{color:var(--win); font-style:normal; font-weight:500}
+.bar{width:64px; height:3px; background:var(--rule); border-radius:2px; overflow:hidden; flex:none}
+.bar b{display:block; height:100%; background:var(--accent)}
+
+/* input */
+form{display:grid; gap:8px}
+.row{display:flex; gap:8px}
+input{flex:1; min-width:0; font:inherit; font-size:17px; height:44px; padding:0 12px; border:1px solid var(--muted); border-radius:var(--r); background:var(--bg); color:var(--fg)}
+input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 1px var(--accent)}
+input::placeholder{color:var(--muted)}
+.btn{height:44px; padding:0 20px; border-radius:var(--r); background:var(--accent); color:var(--bg); font-weight:600}
+.btn.ghost{background:transparent; color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent)}
+.btn:disabled, .link:disabled{opacity:.4; cursor:default}
+.below{display:flex; justify-content:space-between; align-items:baseline; gap:16px; min-height:20px}
+.say{margin:0; font-size:var(--s); color:var(--muted)}
+.say.bad{color:var(--miss)} .say.ok{color:var(--win)}
+.below .link{font-size:var(--s); flex:none}
+.tried{margin:0}
+.tried span{color:var(--miss)}
+
+/* result */
+.result{display:grid; gap:12px; padding-top:20px; border-top:1px solid var(--rule)}
+.result h2{font:500 var(--l)/1.2 var(--display); margin:0}
+.result p{margin:0}
+.route{font:400 19px/1.4 var(--display)}
+.acts{display:flex; gap:8px; flex-wrap:wrap}
+.result textarea{width:100%; font:var(--s)/1.4 ui-monospace, Menlo, Consolas, monospace; border:1px solid var(--rule); border-radius:var(--r); background:var(--bg); color:var(--fg); padding:8px; resize:none}
+
+/* rules */
+.rules{display:grid; gap:12px; max-width:62ch}
+.rules h2{font:500 var(--l)/1.2 var(--display); margin:0}
+.rules ol{margin:0; padding-left:20px; display:grid; gap:8px}
+.rules p{margin:0}
+.ex{font:400 19px/1.4 var(--display)}
+
+@media (prefers-reduced-motion: no-preference){
+  .rung.new{animation:in .25s ease-out}
+  @keyframes in{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div class="brand">Rungs</div>
+    <nav role="tablist" aria-label="Mode">
+      <button id="tab-today" role="tab" aria-selected="true">Today</button>
+      <button id="tab-practice" role="tab" aria-selected="false">Practice</button>
+      <button id="tab-rules" role="tab" aria-selected="false">How to play</button>
+    </nav>
+  </header>
+
+  <section id="game" class="wrap" style="padding:0; gap:24px">
+    <div class="head">
+      <div class="small" id="meta">No. 1</div>
+      <h1><span id="t-from">cup</span> <span class="to">to</span> <span id="t-to">burger</span></h1>
+      <div class="small">Link words close in meaning. Five guesses, par two.</div>
+    </div>
+
+    <div class="status">
+      <div class="pips" id="pips"></div>
+      <div class="small clock" id="clock">0:00</div>
+    </div>
+
+    <div>
+      <div class="legend small" id="legend">near burger</div>
+      <ol class="ladder" id="ladder"></ol>
+    </div>
+
+    <form id="f" autocomplete="off">
+      <div class="row">
+        <input id="g" type="text" aria-label="Next word" autocapitalize="none" spellcheck="false" placeholder="Loading words…" disabled>
+        <button class="btn" id="go" type="submit" disabled>Link</button>
+      </div>
+      <div class="below">
+        <p class="say" id="say" aria-live="polite"></p>
+        <button class="link" id="hint" type="button" disabled>Hint</button>
+      </div>
+      <p class="tried small" id="tried" hidden></p>
+    </form>
+
+    <div class="result" id="result" hidden></div>
+  </section>
+
+  <section id="rules" class="rules" hidden>
+    <h2>How to play</h2>
+    <ol>
+      <li>Type a word close in meaning to the last word on your ladder. If they link, it joins the ladder.</li>
+      <li>Two words link when one is among the other's 50 nearest words, out of 30,000 English words.</li>
+      <li>Reach the target in five guesses. A word that doesn't link uses a guess. Unknown words and repeats are free.</li>
+      <li>Every ladder can be done in two: one middle word, then the target. Fewer guesses wins, time breaks ties.</li>
+      <li>Tap an earlier word to step back to it. A hint shows a bridge word's first letter and uses a guess.</li>
+    </ol>
+    <p class="ex">wine → <span class="link">grape</span> → <span class="link">fruit</span> → <span class="link">banana</span></p>
+    <p class="small">The bar beside each word shows how close it is to the target. Closeness comes from word vectors, which place words used in similar sentences near each other. A new ladder appears every day at midnight.</p>
+  </section>
+</div>
+
+<script>
+const PUZZLES = [["eagle", "dog", ["bear", "wolf"]], ["cafe", "salad", ["dinner", "lunch", "breakfast", "pizza", "snack", "cuisine"]], ["boat", "astronaut", ["crew", "aboard", "airplane", "sailor"]], ["deer", "onion", ["turkey", "goat"]], ["grape", "bacon", ["garlic", "tomatoes", "tomato"]], ["horse", "turkey", ["pig", "goat"]], ["lake", "hurricane", ["ocean", "gulf"]], ["cotton", "bed", ["blanket", "pillow"]], ["marathon", "taxi", ["hour", "ride"]], ["spider", "nightmare", ["monster", "ghost", "phantom"]], ["prince", "tower", ["palace", "castle"]], ["temple", "queen", ["royal", "palace", "goddess"]], ["volcano", "boat", ["island", "ocean"]], ["lizard", "lobster", ["shark", "turtle"]], ["spoon", "shrimp", ["egg", "sauce", "soup"]], ["knight", "turtle", ["dragon", "pirate"]], ["marble", "museum", ["statue", "sculpture", "monument", "antique"]], ["bacon", "octopus", ["fried", "stuffed"]], ["boot", "scarf", ["wear", "pants", "jacket", "socks"]], ["wind", "shark", ["sea", "ocean"]], ["puzzle", "basketball", ["game", "chess"]], ["camera", "galaxy", ["smartphone", "telescope"]], ["guitar", "poetry", ["music", "classical", "folk"]], ["honey", "steak", ["cheese", "sauce"]], ["drum", "ballet", ["jazz", "piano", "violin"]], ["noodle", "cup", ["sauce", "soup"]], ["goose", "bat", ["bird", "squirrel"]], ["canoe", "car", ["ride", "bike", "bicycle"]], ["valley", "volcano", ["mountain", "summit", "cave", "rocky", "cliff", "canyon"]], ["park", "glacier", ["lake", "mountain", "hike"]], ["cowboy", "farm", ["horse", "ranch"]], ["star", "circus", ["comedy", "dancer"]], ["cabin", "pillow", ["bed", "twin"]], ["galaxy", "ocean", ["moon", "planet"]], ["phone", "casino", ["internet", "card"]], ["ice", "tennis", ["hockey", "skating", "skate"]], ["rope", "diamond", ["ring", "chain"]], ["beach", "meadow", ["lake", "sunrise"]], ["cafe", "stadium", ["downtown", "plaza"]], ["sushi", "onion", ["salad", "soup", "fried", "shrimp", "noodles", "taco"]], ["zoo", "bedroom", ["nursery", "backyard"]], ["tomato", "candy", ["fruit", "banana", "pumpkin"]], ["book", "detective", ["writer", "mystery", "fiction", "comic"]], ["library", "teacher", ["school", "students", "student", "educational", "faculty", "classroom"]], ["witch", "dress", ["princess", "costume", "doll"]], ["sailor", "queen", ["girl", "maiden"]], ["giant", "tuna", ["shark", "whale"]], ["knight", "shark", ["dragon", "pirate"]], ["tornado", "river", ["flood", "northeast"]], ["tornado", "cloud", ["rain", "storm", "lightning"]], ["copper", "hammer", ["metal", "steel"]], ["lighthouse", "desert", ["coastal", "sunset"]], ["snow", "planet", ["sky", "polar"]], ["steel", "necklace", ["silver", "chain"]], ["whiskey", "salad", ["cocktail", "sour"]], ["egg", "bucket", ["bowl", "spoon"]], ["lamp", "sunset", ["sunlight", "daylight"]], ["basket", "autumn", ["flowers", "flower"]], ["paper", "sock", ["fabric", "cloth"]], ["wizard", "mystery", ["magic", "magical"]], ["bacon", "strawberry", ["pie", "homemade", "popcorn"]], ["cartoon", "dress", ["costume", "doll"]], ["robot", "owl", ["spider", "monkey", "dinosaur"]], ["halloween", "comic", ["batman", "costume", "cartoon"]], ["lightning", "sea", ["sun", "wind"]], ["cotton", "boot", ["pants", "socks"]], ["foot", "mirror", ["hand", "front", "rear"]], ["park", "casino", ["hotel", "grand", "hall", "resort"]], ["salad", "birthday", ["dinner", "cake"]], ["cheese", "bee", ["eggs", "honey"]], ["foot", "window", ["front", "floor", "corner"]], ["holiday", "casino", ["hotel", "resort"]], ["hockey", "shoe", ["athletic", "skate"]], ["wool", "cowboy", ["hat", "leather"]], ["cookie", "wine", ["cheese", "dessert"]], ["ant", "duck", ["bird", "frog", "squirrel"]], ["magic", "novel", ["fantasy", "mystery"]], ["wedding", "whiskey", ["champagne", "cocktail"]], ["banana", "rubber", ["palm", "cane"]], ["sun", "hand", ["eyes", "palm"]], ["sword", "panda", ["dragon", "ninja"]], ["steak", "tea", ["dinner", "lunch", "meal"]], ["lock", "leather", ["clutch", "strap"]], ["car", "bridge", ["road", "train", "bus", "highway"]], ["summer", "lightning", ["sun", "rain"]], ["arrow", "clock", ["window", "compass"]], ["cabin", "blanket", ["bed", "tent"]], ["pillow", "witch", ["queen", "doll"]], ["jacket", "basketball", ["jersey", "polo"]], ["sun", "dolphin", ["sea", "ocean"]], ["salt", "cherry", ["lemon", "ginger", "lime", "syrup", "cinnamon"]], ["sofa", "restaurant", ["dining", "lounge"]], ["swimming", "bottle", ["water", "fountain"]], ["hammer", "basket", ["hand", "ball"]], ["bus", "island", ["tourist", "ferry"]], ["knife", "fire", ["bullet", "torch"]], ["rat", "giant", ["monkey", "frog"]], ["orange", "lamp", ["light", "bright", "shade"]], ["parrot", "circus", ["elephant", "monkey"]], ["glacier", "jungle", ["mountain", "cave", "rocky", "canyon", "trek"]], ["park", "hockey", ["club", "stadium", "golf", "skating", "skate"]], ["christmas", "clown", ["bunny", "carnival"]], ["fork", "mirror", ["wheel", "rear"]], ["strawberry", "garlic", ["honey", "juice", "lemon", "lime", "cinnamon", "grape"]], ["cowboy", "valley", ["western", "ranch"]], ["opera", "guitar", ["music", "singing", "musical", "jazz", "piano", "classical"]], ["orchestra", "radio", ["music", "band", "tune"]], ["planet", "midnight", ["sky", "moon"]], ["factory", "bucket", ["truck", "wheel"]], ["winter", "moon", ["sun", "sunshine"]], ["ship", "river", ["sea", "boat", "shore", "harbor"]], ["mountain", "zoo", ["park", "jungle"]], ["lion", "mouse", ["monkey", "frog"]], ["swan", "wizard", ["dragon", "fairy"]], ["doctor", "brain", ["pain", "symptoms"]], ["puzzle", "secret", ["trick", "mystery", "treasure"]], ["rainbow", "oyster", ["fish", "pearl", "salmon"]], ["novel", "puzzle", ["mystery", "intriguing"]], ["pig", "pasta", ["chicken", "meat", "turkey", "sausage"]], ["trumpet", "ring", ["bell", "brass"]], ["coin", "lemon", ["mint", "ounce"]], ["hair", "restaurant", ["salon", "barber"]], ["shield", "shirt", ["cap", "helmet"]], ["steel", "window", ["glass", "frame"]], ["cabin", "island", ["boat", "vacation"]], ["palace", "office", ["house", "hall", "residence"]], ["turtle", "king", ["dragon", "lion"]], ["letter", "novel", ["read", "written", "writing"]], ["concert", "fire", ["night", "fireworks"]], ["gorilla", "mouse", ["monkey", "frog"]], ["leather", "sheep", ["wool", "calf"]], ["iron", "rope", ["wire", "wooden"]], ["silver", "peach", ["rose", "yellow", "golden", "ruby"]], ["swan", "chicken", ["duck", "goose"]], ["rubber", "tractor", ["tires", "tire"]], ["moose", "dragon", ["hunter", "wolf", "tiger", "lion", "swan"]], ["mosquito", "duck", ["bird", "frog"]], ["coin", "market", ["dollar", "currency"]], ["kettle", "wine", ["coffee", "brewing"]], ["silk", "owl", ["feathers", "feather"]], ["bedroom", "tractor", ["yard", "semi"]], ["hair", "goose", ["fur", "feathers"]], ["sushi", "garlic", ["salad", "soup", "fried", "pasta", "shrimp", "crab", "noodles"]], ["cotton", "shoe", ["pants", "clothing", "gloves", "socks", "lace"]], ["whiskey", "salt", ["soda", "syrup"]], ["bus", "ship", ["port", "plane", "ferry"]], ["sword", "ghost", ["dragon", "demon"]], ["moose", "butterfly", ["owl", "swan"]], ["treasure", "vampire", ["mystery", "mysterious"]], ["painter", "camera", ["photography", "photographer", "portrait"]], ["prairie", "elephant", ["buffalo", "deer"]], ["marathon", "crown", ["champion", "championship", "medal"]], ["painter", "piano", ["musician", "composer"]], ["birthday", "turkey", ["easter", "thanksgiving"]], ["morning", "steak", ["dinner", "lunch"]], ["bridge", "door", ["gate", "entrance"]], ["farmer", "wood", ["carpenter", "plantation"]], ["plastic", "barn", ["wooden", "cage"]], ["basketball", "lock", ["guard", "locker"]], ["poker", "football", ["game", "play", "players", "tournament", "betting", "chess"]], ["king", "grandmother", ["father", "brother", "uncle"]], ["pepper", "cookie", ["cheese", "butter", "cinnamon"]], ["apple", "phone", ["touch", "iphone", "tablet"]], ["grandmother", "prince", ["father", "brother", "uncle", "cousin", "elder", "nephew", "eldest"]], ["elephant", "sea", ["whale", "dolphins"]], ["thunder", "winter", ["wind", "rain", "snow", "storm"]], ["reef", "wind", ["sea", "ocean", "shore", "tide", "tidal"]], ["banana", "chef", ["salad", "dessert"]], ["submarine", "comet", ["rocket", "spacecraft"]], ["kitchen", "vacation", ["home", "apartment", "cottage"]], ["gorilla", "bee", ["frog", "squirrel"]], ["tent", "queen", ["room", "bed"]], ["snake", "wizard", ["dragon", "demon"]], ["camel", "farmer", ["sheep", "cattle", "cow"]], ["spring", "candle", ["flowers", "flower"]], ["jungle", "cow", ["elephant", "monkey"]], ["vampire", "eagle", ["hunter", "wolf"]], ["popcorn", "goat", ["cheese", "butter", "bacon", "salad"]], ["garden", "cow", ["farm", "barn"]], ["pie", "candle", ["cake", "candy"]], ["hotel", "bicycle", ["park", "taxi"]], ["treasure", "sunrise", ["paradise", "glorious"]], ["office", "umbrella", ["outside", "chair"]], ["movie", "photograph", ["picture", "footage", "poster"]], ["princess", "temple", ["royal", "goddess"]], ["lobster", "spider", ["shark", "turtle"]], ["television", "email", ["internet", "telephone"]], ["dolphin", "wind", ["sea", "ocean"]], ["salmon", "turtle", ["fish", "duck", "whale", "crab"]], ["kangaroo", "horse", ["sheep", "pig", "cow", "rabbit"]], ["snow", "canyon", ["lake", "mountain", "trail"]], ["lion", "princess", ["king", "dragon"]], ["smoke", "heart", ["breath", "breathe"]], ["thunder", "summer", ["rain", "snow"]], ["dance", "tennis", ["club", "skating"]], ["farmer", "goose", ["sheep", "cow"]], ["bathroom", "silk", ["carpet", "curtain"]], ["bicycle", "cliff", ["mountain", "trail"]], ["beach", "cave", ["dive", "underwater"]], ["bee", "wolf", ["owl", "crow", "squirrel"]], ["goat", "prairie", ["wild", "buffalo", "deer", "ranch"]], ["orchestra", "museum", ["theatre", "theater"]], ["temple", "canyon", ["hill", "cave"]], ["cheese", "cherry", ["chocolate", "honey"]], ["kangaroo", "farm", ["sheep", "cow"]], ["marathon", "spring", ["last", "week", "weekend", "afternoon"]], ["burger", "hotel", ["restaurant", "fare"]], ["song", "theater", ["music", "dance", "concert", "musical"]], ["whale", "forest", ["wildlife", "endangered"]], ["cafe", "vacation", ["hotel", "haven"]], ["sunrise", "planet", ["sky", "moon", "ocean", "eclipse"]], ["clown", "knight", ["pirate", "joker"]], ["river", "sailor", ["sea", "boat"]], ["hurricane", "autumn", ["weather", "rain"]], ["money", "silver", ["coins", "coin", "penny"]], ["golf", "zoo", ["park", "playground"]], ["shield", "oven", ["flame", "foil"]], ["castle", "station", ["town", "tower"]], ["tennis", "bathroom", ["pool", "outdoor"]], ["circus", "owl", ["elephant", "monkey"]], ["dream", "money", ["real", "fortune"]], ["clown", "camel", ["monkey", "cowboy"]], ["peach", "zebra", ["pink", "purple"]], ["pie", "rabbit", ["chicken", "stuffed"]], ["concert", "winter", ["night", "evening"]], ["bed", "scarf", ["blanket", "pillow"]], ["wagon", "dog", ["horse", "pony"]], ["concert", "soccer", ["stadium", "arena"]], ["waterfall", "midnight", ["sunset", "sunrise"]], ["honey", "taco", ["cheese", "sauce"]], ["market", "television", ["commercial", "advertising", "segment"]], ["stone", "bottle", ["glass", "fountain"]], ["cottage", "palace", ["house", "castle", "residence", "villa", "mansion", "manor"]], ["cartoon", "book", ["comic", "poster", "manga"]], ["hair", "butterfly", ["tattoo", "feathers"]], ["gold", "drum", ["metal", "brass"]], ["coffee", "mall", ["cafe", "grocery", "starbucks"]], ["crow", "silk", ["feathers", "feather"]], ["comic", "watch", ["movie", "episode"]], ["chef", "sofa", ["kitchen", "dining"]], ["arrow", "ring", ["circle", "triangle"]], ["book", "television", ["series", "newspaper"]], ["soup", "deer", ["turkey", "duck"]], ["dragon", "hammer", ["sword", "spear"]], ["knife", "silver", ["steel", "stainless"]], ["giraffe", "christmas", ["bunny", "teddy"]], ["lightning", "glass", ["light", "blown"]], ["crown", "witch", ["queen", "princess"]], ["internet", "letter", ["mail", "email"]], ["copper", "sculpture", ["clay", "bronze", "ceramic"]], ["tower", "kitchen", ["ceiling", "stairs"]], ["office", "tent", ["house", "room", "outside"]], ["hat", "ballet", ["dress", "costume"]], ["door", "farm", ["house", "barn"]], ["gorilla", "fox", ["bear", "wolf", "tiger", "lion", "monkey", "cubs", "squirrel"]], ["umbrella", "wool", ["hat", "fabric", "blanket"]], ["hockey", "school", ["basketball", "athletic", "varsity"]], ["lemon", "popcorn", ["butter", "soda", "banana", "pumpkin", "strawberry"]], ["map", "train", ["near", "route"]], ["cliff", "forest", ["hill", "mountain", "valley", "trail"]], ["bakery", "tomato", ["cheese", "bread"]], ["lighthouse", "autumn", ["sunset", "sunrise"]], ["wedding", "coffee", ["dinner", "champagne", "cocktail"]], ["airport", "rocket", ["aircraft", "airplane"]], ["internet", "spy", ["phone", "cyber", "hackers"]], ["volcano", "beach", ["island", "ocean"]], ["secret", "window", ["hide", "hidden"]], ["computer", "wallet", ["card", "laptop"]], ["door", "canoe", ["cabin", "tent"]], ["shrimp", "sugar", ["rice", "egg"]], ["goat", "oven", ["butter", "roast"]], ["rainbow", "pencil", ["color", "pink"]], ["stadium", "chess", ["football", "sports", "basketball", "baseball", "championship", "soccer", "hockey"]], ["popcorn", "salmon", ["bacon", "salad", "potato"]], ["forest", "bicycle", ["park", "mountain", "trail"]], ["blood", "tooth", ["bone", "tissue"]], ["teacher", "birthday", ["friend", "daughter", "graduation"]], ["sheep", "garden", ["farm", "barn"]], ["crab", "honey", ["sauce", "garlic", "tomato"]], ["princess", "hat", ["dress", "costume", "pirate"]], ["ladder", "plate", ["wall", "bottom", "rack", "bracket"]], ["money", "chess", ["betting", "poker"]], ["bone", "snake", ["skull", "skeleton"]], ["rope", "shoe", ["foot", "rubber", "strap", "saddle"]], ["dance", "stadium", ["club", "concert"]], ["train", "heart", ["walk", "cross"]], ["rice", "grape", ["garlic", "tomatoes", "tomato"]], ["hurricane", "desert", ["coastal", "tropical"]], ["boat", "penguin", ["whale", "pirate"]], ["astronaut", "ocean", ["moon", "planet"]], ["grape", "bread", ["fruit", "honey", "banana", "garlic", "tomato"]], ["poetry", "orchestra", ["music", "classical"]], ["plate", "marble", ["wall", "glass", "ceramic"]], ["iron", "knife", ["steel", "stainless"]], ["sugar", "oyster", ["rice", "egg"]], ["burger", "kitchen", ["chef", "grill", "butcher"]], ["cloud", "eye", ["sun", "shadow"]], ["cave", "wood", ["stone", "carved"]], ["bedroom", "wagon", ["cabin", "barn"]], ["giraffe", "pirate", ["turtle", "penguin"]], ["spoon", "crab", ["egg", "sauce", "soup"]], ["duck", "reef", ["fish", "turtle"]], ["pillow", "hat", ["umbrella", "feather"]], ["galaxy", "sunrise", ["moon", "eclipse"]], ["theater", "flute", ["orchestra", "symphony"]], ["cookie", "salt", ["sugar", "butter", "baking", "cinnamon"]], ["fog", "tornado", ["rain", "storm"]], ["island", "sailor", ["sea", "boat", "voyage"]], ["crown", "vampire", ["queen", "prince"]], ["coffee", "tomato", ["fruit", "bread", "pot", "juice", "beans"]], ["brain", "tooth", ["bone", "tissue", "skull"]], ["butter", "halloween", ["candy", "pumpkin"]], ["earthquake", "rain", ["storm", "flood", "hurricane", "hail", "tornado"]], ["lake", "bottle", ["water", "fountain"]], ["treasure", "key", ["hidden", "valuable"]], ["palace", "choir", ["chapel", "cathedral"]], ["tent", "scarf", ["blanket", "umbrella"]], ["pasta", "bar", ["dinner", "lunch"]], ["star", "song", ["singer", "idol"]], ["airport", "astronaut", ["airplane", "shuttle", "flown"]], ["hospital", "tooth", ["surgery", "dental", "dentist"]], ["apple", "crab", ["potato", "tomato"]], ["candle", "plate", ["glass", "basket"]], ["cave", "church", ["temple", "sanctuary"]], ["motorcycle", "plane", ["crash", "collision"]], ["summer", "moon", ["sun", "sunshine"]], ["rabbit", "mosquito", ["bird", "frog"]], ["soup", "kangaroo", ["duck", "lamb"]], ["paper", "jacket", ["cover", "fabric"]], ["spy", "radio", ["phone", "radar", "recorder"]], ["night", "waterfall", ["sunset", "sunrise"]], ["glass", "fork", ["steel", "bowl", "plate", "aluminum", "stainless"]], ["barn", "monkey", ["cow", "cage"]], ["castle", "choir", ["chapel", "cathedral"]], ["sunset", "fire", ["night", "fireworks"]], ["mosquito", "elephant", ["bird", "frog"]], ["hand", "bone", ["body", "neck"]], ["salmon", "noodle", ["chicken", "beef", "salad", "potato", "pork", "shrimp"]], ["radio", "movie", ["video", "television"]], ["angel", "song", ["love", "idol"]], ["copper", "paper", ["scrap", "foil"]], ["plastic", "ladder", ["wooden", "cage"]], ["opera", "museum", ["famous", "theatre", "theater"]], ["diamond", "prince", ["crown", "princess"]], ["wedding", "king", ["royal", "princess"]], ["swamp", "garden", ["bush", "pond"]], ["onion", "rabbit", ["chicken", "goat", "lamb"]], ["sculpture", "poet", ["artist", "painter"]], ["storm", "smoke", ["fire", "blown", "fog", "blaze"]], ["glass", "drum", ["metal", "brass"]], ["motorcycle", "rubber", ["tires", "tire"]], ["blanket", "dress", ["sweater", "vest"]], ["sculpture", "camera", ["photography", "photograph", "portrait"]], ["crow", "egg", ["duck", "nest"]], ["pie", "tuna", ["chicken", "cheese", "sauce", "bacon", "salad"]], ["finger", "wallet", ["shoulder", "wrist"]], ["sunset", "ship", ["sea", "shore", "harbor"]], ["taxi", "factory", ["car", "truck"]], ["bucket", "motorcycle", ["truck", "wheel"]], ["magic", "swan", ["dragon", "fairy"]], ["horse", "bus", ["ride", "carriage"]], ["waterfall", "morning", ["hike", "sunrise"]], ["fox", "ant", ["snake", "monkey", "squirrel"]], ["mountain", "truck", ["road", "bike", "bicycle"]], ["coin", "pepper", ["mint", "ounce"]], ["robot", "baby", ["toy", "monkey"]], ["morning", "chef", ["dinner", "lunch"]], ["funeral", "nurse", ["mother", "hospital"]], ["ice", "rice", ["milk", "butter"]], ["kettle", "table", ["coffee", "kitchen", "tray"]], ["email", "key", ["information", "address", "password"]], ["mystery", "wolf", ["ghost", "vampire"]], ["penguin", "deer", ["bird", "tiger", "lion", "owl", "squirrel"]], ["bat", "football", ["league", "ball", "baseball", "cricket"]], ["plane", "comet", ["sky", "orbit", "spacecraft"]], ["star", "ballet", ["premiere", "dancer"]], ["painting", "cartoon", ["picture", "poster", "sketch", "illustration", "wallpaper"]], ["rat", "heart", ["brain", "liver"]], ["bar", "cottage", ["breakfast", "terrace"]], ["umbrella", "sock", ["hat", "fabric"]], ["dance", "golf", ["club", "swing"]], ["lobster", "cup", ["sauce", "soup"]], ["library", "letter", ["writing", "copy"]], ["finger", "computer", ["mouse", "keyboard"]], ["orange", "smoke", ["light", "burnt"]], ["swamp", "bridge", ["river", "creek"]], ["chair", "car", ["seat", "wheelchair"]], ["angel", "penguin", ["kitty", "bunny"]], ["taxi", "mountain", ["road", "bicycle"]], ["rocket", "soldier", ["artillery", "bomber"]], ["mall", "market", ["retail", "supermarket", "retailer"]], ["snake", "pirate", ["dragon", "shark", "turtle"]], ["glacier", "stone", ["cave", "boulder"]], ["cherry", "bread", ["fruit", "chocolate", "honey", "banana"]], ["pepper", "iron", ["salt", "powder"]], ["sea", "moose", ["arctic", "whale", "polar"]], ["pirate", "butterfly", ["fairy", "turtle"]], ["ladder", "station", ["tower", "anchor"]], ["bed", "canoe", ["cabin", "tent"]], ["arrow", "hand", ["finger", "sword", "bow"]], ["library", "internet", ["access", "computer", "software"]], ["dolphin", "spider", ["bird", "shark", "turtle", "frog"]], ["rain", "holiday", ["summer", "winter", "autumn"]], ["ghost", "sun", ["dark", "shadow", "darkness", "twilight"]], ["fork", "shield", ["plate", "blade"]], ["zebra", "giant", ["elephant", "frog"]], ["mystery", "halloween", ["ghost", "haunted"]], ["candy", "giraffe", ["bunny", "teddy"]], ["mall", "sandwich", ["grocery", "supermarket"]], ["angel", "peach", ["sweet", "rose"]], ["photograph", "map", ["view", "image"]], ["stone", "swimming", ["sand", "fountain"]], ["panda", "reef", ["shark", "turtle"]], ["cake", "shrimp", ["egg", "salad"]], ["necklace", "frog", ["skull", "butterfly"]], ["plastic", "monkey", ["toy", "cage"]], ["swamp", "swimming", ["lake", "pond"]], ["crow", "shark", ["spider", "snake"]], ["basket", "marble", ["wooden", "decorative"]], ["lock", "mouse", ["button", "activate"]], ["earthquake", "hospital", ["emergency", "evacuation"]], ["photograph", "comic", ["poster", "artwork", "sketch", "illustration"]], ["shirt", "bone", ["neck", "skull"]], ["hospital", "grandmother", ["died", "funeral", "elderly"]], ["bat", "chess", ["baseball", "cricket"]], ["movie", "painting", ["picture", "poster"]], ["poker", "soccer", ["game", "play", "players", "tournament", "chess"]], ["theater", "trumpet", ["orchestra", "symphony"]], ["soup", "sheep", ["meat", "lamb"]], ["oven", "sugar", ["butter", "baking"]], ["factory", "train", ["car", "depot"]], ["plane", "moon", ["sky", "orbit", "spacecraft"]], ["finger", "boot", ["heel", "thigh"]], ["vacation", "barn", ["cabin", "cottage"]], ["whale", "chicken", ["fish", "salmon"]], ["fox", "baby", ["bear", "monkey", "bunny"]], ["table", "tower", ["wooden", "ceiling"]], ["dream", "watch", ["love", "remember", "wish", "forget", "seeing", "wonder", "imagine"]], ["eye", "rainbow", ["color", "bright", "glow"]], ["holiday", "bar", ["hotel", "breakfast"]], ["butter", "pig", ["meat", "goat"]], ["map", "email", ["information", "page", "text", "link", "search", "click"]], ["wine", "taco", ["cheese", "sauce"]], ["chair", "restaurant", ["dining", "lounge"]], ["egg", "bakery", ["cheese", "cake", "bread", "baked"]], ["burger", "kettle", ["soup", "grill"]], ["whale", "dog", ["animals", "animal", "bear"]], ["banana", "oyster", ["salad", "potato", "tomato"]], ["mirror", "wagon", ["wheel", "rear", "trunk"]], ["poker", "bank", ["money", "cash"]], ["rain", "lamp", ["sunlight", "daylight"]], ["octopus", "bear", ["whale", "stuffed"]], ["foot", "wallet", ["shoulder", "shoe", "wrist", "strap"]], ["detective", "poetry", ["writer", "fiction"]], ["eye", "chair", ["head", "hand"]], ["table", "hotel", ["room", "dining", "lounge"]], ["cow", "pasta", ["chicken", "meat"]], ["cottage", "canyon", ["lodge", "ranch"]], ["cliff", "night", ["down", "sunset"]], ["ghost", "eagle", ["dragon", "hunter", "wolf"]], ["lake", "station", ["near", "park"]], ["bakery", "spoon", ["cake", "baking"]], ["butter", "christmas", ["cake", "candy"]], ["key", "cloud", ["data", "global"]], ["gold", "sky", ["blue", "golden"]], ["ice", "garlic", ["cheese", "butter", "juice"]], ["poet", "painting", ["artist", "painter"]], ["ocean", "wolf", ["arctic", "polar"]], ["opera", "harp", ["singing", "jazz", "piano", "orchestra", "choir"]], ["fog", "orange", ["light", "dark"]], ["monkey", "computer", ["mouse", "robot"]], ["bear", "chicken", ["rabbit", "stuffed"]], ["wood", "painter", ["paint", "carpenter"]], ["gold", "zebra", ["purple", "ivory"]], ["leather", "pencil", ["pocket", "canvas"]], ["dragon", "shirt", ["tattoo", "skull"]], ["rat", "camel", ["snake", "pig", "monkey"]], ["thunder", "spring", ["rain", "snow"]], ["teacher", "baby", ["parents", "daughter"]], ["bathroom", "golf", ["pool", "outdoor"]], ["panda", "candy", ["bunny", "teddy"]], ["pig", "jungle", ["elephant", "monkey"]], ["chocolate", "sushi", ["delicious", "vegan", "snack", "dessert"]], ["snow", "earthquake", ["storm", "hail"]], ["valley", "airport", ["south", "near", "northwest"]], ["octopus", "sandwich", ["fried", "stuffed"]], ["glove", "ring", ["belt", "strap"]], ["chocolate", "rice", ["sugar", "milk", "bread", "butter", "peanut", "coconut", "cereal"]], ["robot", "nightmare", ["monster", "zombie"]], ["lemon", "taco", ["sauce", "onion"]], ["night", "sandwich", ["lunch", "breakfast", "supper"]], ["detective", "magic", ["mystery", "mysterious"]], ["pizza", "cup", ["ice", "cheese", "cake", "bread", "sauce", "soup"]], ["lighthouse", "midnight", ["sunset", "sunrise"]], ["tuna", "cake", ["cheese", "salad"]], ["cake", "funeral", ["wedding", "birthday"]], ["piano", "poet", ["musician", "composer"]], ["castle", "diamond", ["stone", "princess"]], ["bear", "ant", ["bird", "monkey", "squirrel"]], ["glove", "steel", ["rubber", "grip"]], ["turkey", "prairie", ["buffalo", "deer"]]];
+const SCALE2 = 26570.76282994746;
+const K = 50, DIM = 200, MAX = 5;
+const EPOCH = new Date(2026, 9, 30);
+
+let W = null, IDX = null, ALIAS = {}, VEC = null, N = 0;
+const topCache = new Map();
+
+function dotsFor(i){
+  const out = new Int32Array(N), b = i*DIM;
+  for (let j=0;j<N;j++){ let s=0, o=j*DIM; for (let k=0;k<DIM;k++) s += VEC[b+k]*VEC[o+k]; out[j]=s; }
+  out[i] = -1e9; return out;
+}
+function topK(i){
+  if (topCache.has(i)) return topCache.get(i);
+  const d = dotsFor(i), bd = [], bj = [];
+  for (let j=0;j<N;j++){
+    const v = d[j];
+    if (bd.length < K || v > bd[bd.length-1]){
+      let p = bd.length; while (p>0 && v > bd[p-1]) p--;
+      bd.splice(p,0,v); bj.splice(p,0,j);
+      if (bd.length > K){ bd.pop(); bj.pop(); }
+    }
+  }
+  const r = {set:new Set(bj), dots:d}; topCache.set(i, r); return r;
+}
+function dot(a,b){ let s=0, x=a*DIM, y=b*DIM; for (let k=0;k<DIM;k++) s+=VEC[x+k]*VEC[y+k]; return s; }
+function sim(a,b){ return Math.max(0, dot(a,b)/SCALE2); }
+function linked(a,b){ return topK(a).set.has(b) || topK(b).set.has(a); }
+function rankOf(a,b){ const d = topK(a).dots, v = d[b]; let r=1; for (let j=0;j<N;j++) if (d[j]>v) r++; return r; }
+function lookup(raw){
+  const w = raw.toLowerCase().trim().replace(/[^a-z]/g,'');
+  if (IDX.has(w)) return w;
+  if (ALIAS[w]) return ALIAS[w];
+  return null;
+}
+
+// ---------- state ----------
+let S = null, tick = null;
+function dayIndex(d=new Date()){ const a=new Date(d.getFullYear(),d.getMonth(),d.getDate()); return Math.round((a-EPOCH)/864e5); }
+function todayNo(){ return dayIndex()+1; }
+function todayPuzzle(){ const n=PUZZLES.length; return ((dayIndex()%n)+n)%n; }
+function fresh(mode, p){ return {mode, p, chain:[PUZZLES[p][0]], log:[], misses:[], used:0, start:null, elapsed:0, done:false, won:false}; }
+const store = {
+  get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+
+const $ = id => document.getElementById(id);
+function fmt(ms){ const s=Math.floor(ms/1000); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function now(){ return S.done ? S.elapsed : (S.start ? Date.now()-S.start : 0); }
+function goal(){ return PUZZLES[S.p][1]; }
+function cur(){ return S.chain[S.chain.length-1]; }
+
+function render(newIdx=-1){
+  const [from,to] = PUZZLES[S.p];
+  $('t-from').textContent = from; $('t-to').textContent = to;
+  $('meta').textContent = S.mode==='today'
+    ? 'No. '+todayNo()+' · '+new Date().toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'})
+    : 'Practice · '+(S.p+1)+' of '+PUZZLES.length;
+  $('legend').textContent = 'near '+to;
+  $('legend').hidden = !VEC || S.won;
+
+  const pips = $('pips'); pips.innerHTML='';
+  for (let i=0;i<MAX;i++){ const e=document.createElement('span'); e.className='pip'+(S.log[i]?' '+S.log[i]:''); pips.appendChild(e); }
+  pips.setAttribute('aria-label', S.used+' of '+MAX+' guesses used'); pips.setAttribute('role','img');
+
+  const L = $('ladder'); L.innerHTML='';
+  const ready = !!VEC, gi = ready ? IDX.get(to) : -1;
+  S.chain.forEach((w,i)=>{
+    const li=document.createElement('li');
+    const isLast = i===S.chain.length-1, isGoal = S.won && isLast;
+    li.className='rung'+(i===0?' start':'')+(isLast && !S.won?' current':'')+(isGoal?' goal reached':'')+(i===newIdx?' new':'');
+    if (isGoal){ const d=document.createElement('div'); d.className='word'; d.textContent=w; li.appendChild(d); }
+    else {
+      const b=document.createElement('button'); b.type='button'; b.className='word link'; b.textContent=w;
+      b.setAttribute('aria-label', isLast ? w+', current word' : 'Step back to '+w);
+      b.onclick=()=>stepBack(i); li.appendChild(b);
+      if (ready){ const s=sim(IDX.get(w),gi); const bar=document.createElement('div'); bar.className='bar';
+        bar.title=Math.round(s*100)+'% alike to '+to; bar.innerHTML='<b style="width:'+Math.min(100,Math.round(s/0.6*100))+'%"></b>'; li.appendChild(bar); }
+    }
+    L.appendChild(li);
+  });
+  if (!S.won){ const g=document.createElement('li'); g.className='rung goal'; const d=document.createElement('div'); d.className='word'; d.textContent=to; g.appendChild(d); L.appendChild(g); }
+
+  const T=$('tried');
+  if (S.misses.length){ T.hidden=false; T.textContent='Tried '; S.misses.forEach((m,i)=>{ const s=document.createElement('span'); s.textContent=m; T.appendChild(s); if(i<S.misses.length-1) T.appendChild(document.createTextNode(' · ')); }); }
+  else T.hidden=true;
+
+  const live = ready && !S.done;
+  $('f').hidden = S.done;
+  $('g').disabled = !live; $('go').disabled = !live; $('hint').disabled = !live || S.used>=MAX-1;
+  $('g').placeholder = ready ? 'A word near '+cur() : 'Loading words…';
+  $('clock').textContent = fmt(now());
+  renderResult();
+}
+
+function renderResult(){
+  const R=$('result');
+  if (!S.done){ R.hidden=true; return; }
+  R.hidden=false; R.innerHTML='';
+  const [from,to,br]=PUZZLES[S.p];
+  const grade = !S.won ? 'Out of guesses' : S.used<=2 ? 'Perfect climb' : S.used===3 ? 'Strong climb' : 'Made it';
+  const marks = S.log.map(x=>x==='hit'?'●':x==='hint'?'◌':'○').join('');
+  const share = 'Rungs '+(S.mode==='today'?'No. '+todayNo():'practice')+'\n'+from+' → '+to+'\n'+marks+'  '+(S.won?S.used:'X')+'/'+MAX+'  '+fmt(S.elapsed);
+  const add=(tag,cls,txt)=>{ const e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; R.appendChild(e); return e; };
+  add('h2','',grade);
+  const st=store.get('rungs2-stats');
+  add('p','small', (S.won ? S.used+' guesses · '+fmt(S.elapsed) : 'All five guesses used') + (S.mode==='today' && st && st.played ? ' · streak '+st.streak : ''));
+  if (S.won) add('p','route',S.chain.join(' → '));
+  const b=add('p','small','Bridges: ');
+  br.forEach((w,i)=>{ const s=document.createElement('span'); s.className='link'; s.textContent=w; b.appendChild(s); if(i<br.length-1) b.appendChild(document.createTextNode(', ')); });
+  const acts=add('div','acts');
+  const cp=document.createElement('button'); cp.className='btn ghost'; cp.type='button'; cp.textContent='Copy result';
+  const nx=document.createElement('button'); nx.className='btn'; nx.type='button'; nx.textContent='Next ladder'; nx.onclick=()=>newPractice();
+  acts.append(nx,cp);
+  const ta=add('textarea'); ta.id='share-text'; ta.rows=3; ta.readOnly=true; ta.value=share; ta.hidden=true;
+  cp.onclick=()=>{ const fallback=()=>{ ta.hidden=false; ta.select(); cp.textContent='Select and copy'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(share).then(()=>{cp.textContent='Copied';}, fallback); else fallback(); };
+}
+
+function say(msg, kind=''){ const e=$('say'); e.textContent=msg; e.className='say'+(kind?' '+kind:''); }
+function startClock(){ if (!S.start && !S.done) S.start=Date.now()-S.elapsed; if (!tick) tick=setInterval(()=>{ if(S && !S.done) $('clock').textContent=fmt(now()); }, 250); }
+function persist(){ if (S.mode==='today') store.set('rungs2-day-'+dayIndex(), S); }
+
+function finish(won){
+  S.done=true; S.won=won; S.elapsed = S.start ? Date.now()-S.start : 0;
+  persist();
+  const st = store.get('rungs2-stats') || {played:0, won:0, streak:0, last:null};
+  if (S.mode==='today' && st.last!==dayIndex()){
+    st.played++; if (won){ st.won++; st.streak = (st.last===dayIndex()-1 ? st.streak : 0)+1; } else st.streak=0;
+    st.last=dayIndex(); store.set('rungs2-stats', st);
+  }
+}
+
+function guess(raw){
+  if (S.done || !VEC) return;
+  const txt = raw.trim(); if (!txt) return;
+  startClock();
+  const w = lookup(txt);
+  if (!w){ say('Not in the word list. No guess used.'); return; }
+  if (S.chain.includes(w)){ say('Already on your ladder. No guess used.'); return; }
+  const a = IDX.get(cur()), b = IDX.get(w);
+  S.used++;
+  if (linked(a,b)){
+    S.chain.push(w); S.log.push('hit');
+    if (w===goal()) finish(true);
+    else { say('Linked.', 'ok'); if (S.used>=MAX) finish(false); }
+  } else {
+    S.log.push('miss'); S.misses.push(w);
+    const r = rankOf(a,b);
+    say(r<=120 ? 'Close. '+w+' is #'+r+' near '+cur()+'; links need the top 50.' : 'No link. '+w+' is #'+r+' near '+cur()+'.', 'bad');
+    if (S.used>=MAX) finish(false);
+  }
+  persist(); render(S.chain.length-1);
+  $('g').value=''; if (!S.done) $('g').focus();
+}
+
+function stepBack(i){
+  if (S.done || i===S.chain.length-1) return;
+  S.chain = S.chain.slice(0,i+1); persist(); render();
+  say('Back on '+cur()+'.'); $('g').focus();
+}
+
+function bridgesFrom(c, t){
+  const [from,,br] = PUZZLES[S.p];
+  if (c===from) return br;
+  const a=IDX.get(c), g=IDX.get(t), cand=new Set([...topK(a).set, ...topK(g).set]), out=[];
+  for (const m of cand){ if (m!==a && m!==g && linked(a,m) && linked(m,g)) out.push(W[m]); }
+  return out;
+}
+function hint(){
+  if (S.done || !VEC || S.used>=MAX-1) return;
+  startClock();
+  S.used++; S.log.push('hint');
+  if (linked(IDX.get(cur()), IDX.get(goal()))) say(cur()+' links straight to '+goal()+'.');
+  else {
+    const out = bridgesFrom(cur(), goal()).filter(w=>!S.chain.includes(w));
+    if (out.length){ const w=out[Math.floor(Math.random()*out.length)]; say('Try a '+w.length+'-letter word starting with '+w[0].toUpperCase()+'.'); }
+    else say('No single word gets there from '+cur()+'. Step back.');
+  }
+  persist(); render();
+}
+
+function newPractice(){
+  const today = todayPuzzle(); let p;
+  do { p = Math.floor(Math.random()*PUZZLES.length); } while (p===today && PUZZLES.length>1);
+  pause(); S = fresh('practice', p); setTab('practice'); render(); say('');
+}
+function loadToday(){
+  pause();
+  const saved = store.get('rungs2-day-'+dayIndex());
+  S = (saved && saved.p===todayPuzzle()) ? saved : fresh('today', todayPuzzle());
+  if (S.start && !S.done) S.start = Date.now()-S.elapsed;
+  render(); say('');
+}
+function pause(){ if (S && !S.done && S.start) S.elapsed = Date.now()-S.start; }
+
+function setTab(t){
+  ['today','practice','rules'].forEach(x=>$('tab-'+x).setAttribute('aria-selected', String(x===t)));
+  $('game').hidden = t==='rules'; $('rules').hidden = t!=='rules';
+}
+$('tab-today').onclick=()=>{ setTab('today'); loadToday(); };
+$('tab-practice').onclick=()=>{ if (S && S.mode==='practice' && !S.done) setTab('practice'); else newPractice(); };
+$('tab-rules').onclick=()=>setTab('rules');
+$('f').addEventListener('submit', e=>{ e.preventDefault(); guess($('g').value); });
+$('hint').onclick=hint;
+$('g').addEventListener('input', ()=>startClock());
+
+window.claude?.hot?.snapshot?.(()=>{ pause(); return {S}; });
+
+function boot(data){
+  if (data && data.S){ S = data.S; if (S.start && !S.done) S.start = Date.now()-S.elapsed; setTab(S.mode==='practice'?'practice':'today'); render(); }
+  else loadToday();
+  Promise.all([
+    fetch('words.json').then(r=>r.json()),
+    fetch('vectors.txt').then(r=>r.text()).then(t=>{ const bin=atob(t.trim()), u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u.buffer; })
+  ]).then(([wd, buf])=>{
+    W = wd.words; ALIAS = wd.alias; N = W.length; IDX = new Map(W.map((w,i)=>[w,i])); VEC = new Int8Array(buf);
+    render(); if (!S.done && !S.used) say('Clock starts when you type.');
+  }).catch(()=>say('The word list didn\'t load. Reload to try again.', 'bad'));
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+</script>
+
+</body>
+</html>
